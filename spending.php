@@ -35,7 +35,7 @@ file_put_contents("all.xml",$all);
 
 `xsltproc xsl/all.xsl all.xml > spending.xml; rm all.xml`;
 
-echo "трансформирани са  ".count($files)." записа.<br/>\n";
+echo "Трансформирани са  ".count($files)." записа.<br/>\n";
 
 
 function parseExcel($filename) {
@@ -51,6 +51,7 @@ function parseExcel($filename) {
 	$isSebra=false;
 	$isOther=false;
 	$latestNode=false;
+	$cacheName=false;
 
 	for ($j=0;$j<$data->rowcount();$j++)
 		if (trim($data->val($j,1))!="" || trim($data->val($j,2))!="") {
@@ -79,9 +80,11 @@ function parseExcel($filename) {
 				if ($isSummary)
 					die("Грешна структура! 1 $j");
 
+				$name = ($cacheName?$cacheName." ":"").$c1;
 				$latestNode = $intitutions->addChild("SpendingEntity");
-				$latestNode->addAttribute('name', mb_strstr($c1, " ( ", true));
-				$latestNode->addAttribute('code', mb_substr(mb_strstr($c1, " ( "),3,-2));
+				$latestNode->addAttribute('name', mb_strstr($name, " ( ", true));
+				$latestNode->addAttribute('code', mb_substr(mb_strstr($name, " ( "),3,-2));
+				$cacheName=false;
 			} else
 			if (mb_strpos($c1,"Общо")===0) {
 				if ($isOther) {
@@ -98,6 +101,7 @@ function parseExcel($filename) {
 						echo "$j".$at['name'];
 					$latestNode->addAttribute('count', $c3);
 					$latestNode->addAttribute('fullAmount', str_replace(",","",$c4));
+					$latestNode=false;
 				} else 
 					die("Грешна структура! 2 $j");
 				$isSummary=false;
@@ -113,8 +117,10 @@ function parseExcel($filename) {
 				} else
 				if ($latestNode)
 					$node = $latestNode->addChild("Payment");
-				else 
-					die("Грешна структура! 3 $j ".$xml->asXML());
+				else {
+					$cacheName=($cacheName?$cacheName." ":"").$c1;
+					continue;
+				}
 
 				if ($c1!="" && $c1!="xxxx")
 					$node->addAttribute('code', $c1);

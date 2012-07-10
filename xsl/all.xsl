@@ -72,7 +72,7 @@
 			</Other>
 		</SpendingSummary>
 		<SpendingBreakdown>
-			<xsl:for-each select="//SpendingBreakdown/SpendingEntity[not(preceding::SpendingBreakdown/SpendingEntity/@code=./@code)]">
+			<xsl:for-each select="//SpendingBreakdown/SpendingEntity[not(following::SpendingBreakdown/SpendingEntity/@code=./@code)]">
 				<xsl:sort select="@code"/>
 				<xsl:sort select="@name" case-order="upper-first"/>
 				<xsl:variable name="currentCode" select="@code"/>
@@ -92,7 +92,7 @@
 						<xsl:value-of select="sum(//SpendingBreakdown/SpendingEntity[@code=$currentCode]/@fullAmount)"/>
 					</xsl:attribute>
 
-					<xsl:for-each select="//SpendingBreakdown/SpendingEntity[@code=$currentCode]/Payment[not(preceding::SpendingEntity[@code=$currentCode]/Payment/@name=./@name)]">
+					<xsl:for-each select="//SpendingBreakdown/SpendingEntity[@code=$currentCode]/Payment[not(following::SpendingEntity[@code=$currentCode]/Payment/@name=./@name)]">
 						<xsl:sort select="@code"/>
 						<xsl:sort select="@name" case-order="upper-first"/>
 						<xsl:variable name="currentName" select="@name"/>
