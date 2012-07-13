@@ -1,130 +1,149 @@
-
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
-    <script type="text/javascript" src="res/d3.js"></script>
-    <script type="text/javascript" src="res/d3.layout.js"></script>
-    <style type="text/css">
+<header>
+<meta charset="utf-8">
+<title>Бюджетни разходи</title>
+<style>
 
-.chart {
-  display: block;
-  margin: auto;
-  margin-top: 40px;
+#content {
+	margin:0 auto;
+	width:970px;
 }
 
-text {
-  font-size: 11px;
+h2 {
+	text-align:center;
 }
 
-rect {
+#chart {
+  height: 2000px;
+  margin-top:50px;
+}
+
+.node rect {
+  cursor: move;
+  fill-opacity: .9;
+  shape-rendering: crispEdges;
+}
+
+.node text {
+  pointer-events: none;
+  font-size:90%;
+}
+
+.link {
   fill: none;
+  stroke: #000;
+  stroke-opacity: .2;
 }
 
-    </style>
-  </head>
-  <body>
-    <div id="body">
-      <div id="footer">
-        d3.layout.treemap
-        <div class="hint">click or option-click to descend or ascend</div>
-        <div><select>
-          <option value="Amount">Amount</option>
-          <option value="count">Count</option>
-        </select></div>
-      </div>
-    </div>
-    <script type="text/javascript">
+.link:hover {
+  stroke-opacity: .5;
+}
 
-var w = 1280 - 80,
-    h = 800 - 180,
-    x = d3.scale.linear().range([0, w]),
-    y = d3.scale.linear().range([0, h]),
-    color = d3.scale.category20c(),
-    root,
-    node;
+</style>
+</header>
+<body>
 
-var treemap = d3.layout.treemap()
-    .round(false)
-    .size([w, h])
-    .sticky(true)
-    .value(function(d) { return d.amount; });
+<div id="content">
+<h2>Къде са отишли бюджетните плащания в периода 2-11 юни 2012?</h2>
 
-var svg = d3.select("#body").append("div")
-    .attr("class", "chart")
-    .style("width", w + "px")
-    .style("height", h + "px")
-  .append("svg:svg")
-    .attr("width", w)
-    .attr("height", h)
-  .append("svg:g")
-    .attr("transform", "translate(.5,.5)");
+<p>Тази графика показва част от данните за бюджетните плащания публикувани ежедневно от министерството на финансите. Повече 
+по темата може да прочетете <a href="http://bg.okfn.org/2012/07/05/ogp-budgetni-stredstva/">тук</a>, а <a href="data">тук</a> може да намерите всички свалени и трансформирани данни. Тази визуализация е базирана на <a href="http://bost.ocks.org/mike/sankey/">D3 Sankey</a> графиката на Mike Bostock и Tom Counsell.</p>
 
-d3.json("report1.json", function(data) {
-  node = root = data;
+<p id="chart"/>
+</div>
 
-  var nodes = treemap.nodes(root)
-      .filter(function(d) { return !d.children; });
+<script src="http://d3js.org/d3.v2.min.js?2.9.1"></script>
+<script src="res/sankey.js"></script>
+<script>
 
-  var cell = svg.selectAll("g")
-      .data(nodes)
-    .enter().append("svg:g")
-      .attr("class", "cell")
+var margin = {top: 10, right: 1, bottom: 10, left: 1},
+    width = 960 - margin.left - margin.right,
+    height = 2000 - margin.top - margin.bottom;
+
+var formatNumber = d3.format(",.0f"),
+    format = function(d) { return formatNumber(d) + " лева"; },
+    color = d3.scale.category20();
+
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var sankey = d3.sankey()
+    .nodeWidth(25)
+    .nodePadding(15)
+    .size([width, height]);
+
+var path = sankey.link();
+
+d3.json("report2.json", function(energy) {
+
+  sankey
+      .nodes(energy.nodes)
+      .links(energy.links)
+      .layout(32);
+
+  var link = svg.append("g").selectAll(".link")
+      .data(energy.links)
+    .enter().append("path")
+      .attr("class", "link")
+      .attr("d", path)
+      .style("stroke-width", function(d) { return Math.max(1, d.dy); })
+      .sort(function(a, b) { return b.dy - a.dy; });
+
+  link.append("title")
+      .text(function(d) { return format(d.value) + "\nот " + d.source.name + "\nза " + d.target.name; });
+
+  var node = svg.append("g").selectAll(".node")
+      .data(energy.nodes)
+    .enter().append("g")
+      .attr("class", "node")
       .attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; })
-      .on("click", function(d) { return zoom(node == d.parent ? root : d.parent); });
+    .call(d3.behavior.drag()
+      .origin(function(d) { return d; })
+      .on("dragstart", function() { this.parentNode.appendChild(this); })
+      .on("drag", dragmove));
 
-  cell.append("svg:rect")
-      .attr("width", function(d) { return d.dx - 1; })
-      .attr("height", function(d) { return d.dy - 1; })
-      .style("fill", function(d) { return color(d.parent.name); });
+  node.append("rect")
+      .attr("height", function(d) { return d.dy>2?d.dy:2; })
+      .attr("width", sankey.nodeWidth())
+      .style("fill", function(d) { return d.color = color(d.name.replace("_ .*_", "")); })
+      .style("stroke", function(d) { return d3.rgb(d.color).darker(2); })
+    .append("title")
+      .text(function(d) { return d.name + "\n" + format(d.value); });
 
-  cell.append("svg:text")
-      .attr("x", function(d) { return d.dx / 2; })
+  node.append("text")
+      .attr("x", -6)
       .attr("y", function(d) { return d.dy / 2; })
       .attr("dy", ".35em")
-      .attr("text-anchor", "middle")
+      .attr("text-anchor", "end")
+      .attr("transform", null)
       .text(function(d) { return d.name; })
-      .style("opacity", function(d) { d.w = this.getComputedTextLength(); return d.dx > d.w ? 1 : 0; });
+    .filter(function(d) { return d.x < width / 2; })
+      .attr("x", 6 + sankey.nodeWidth())
+      .attr("text-anchor", "start");
 
-  d3.select(window).on("click", function() { zoom(root); });
-
-  d3.select("select").on("change", function() {
-    treemap.value(this.value == "amount" ? amount : count).nodes(root);
-    zoom(node);
-  });
+  function dragmove(d) {
+    d3.select(this).attr("transform", "translate(" + d.x + "," + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + ")");
+    sankey.relayout();
+    link.attr("d", path);
+  }
 });
 
-function amount(d) {
-  return d.amount;
-}
+</script>
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-2905006-14']);
+		_gaq.push(['_trackPageview']);
 
-function count(d) {
-  return d.count;
-}
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
 
-function zoom(d) {
-  var kx = w / d.dx, ky = h / d.dy;
-  x.domain([d.x, d.x + d.dx]);
-  y.domain([d.y, d.y + d.dy]);
-
-  var t = svg.selectAll("g.cell").transition()
-      .duration(d3.event.altKey ? 7500 : 750)
-      .attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; });
-
-  t.select("rect")
-      .attr("width", function(d) { return kx * d.dx - 1; })
-      .attr("height", function(d) { return ky * d.dy - 1; })
-
-  t.select("text")
-      .attr("x", function(d) { return kx * d.dx / 2; })
-      .attr("y", function(d) { return ky * d.dy / 2; })
-      .style("opacity", function(d) { return kx * d.dx > d.w ? 1 : 0; });
-
-  node = d;
-  d3.event.stopPropagation();
-}
-
-    </script>
-  </body>
+	</script>
+</body>
 </html>
-

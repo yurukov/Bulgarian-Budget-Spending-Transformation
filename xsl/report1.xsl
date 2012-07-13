@@ -25,18 +25,16 @@
 </xsl:template>
 
 <xsl:template match="Payment[sum(PaymentDay/@amount)>0]">
-	<node>
-		<xsl:if test="position()>1">
-			<xsl:text>,</xsl:text>
-		</xsl:if>
-		<xsl:text>{"name":"</xsl:text>
-		<xsl:value-of select="translate(@name,'&quot;','\&quot;')"/>
-		<xsl:text>","count":</xsl:text>
-		<xsl:value-of select="sum(PaymentDay/@count)"/>
-		<xsl:text>,"amount":</xsl:text>
-		<xsl:value-of select="sum(PaymentDay/@amount)"/>
-		<xsl:text>}</xsl:text>
-	</node>
+	<xsl:if test="position()>1">
+		<xsl:text>,</xsl:text>
+	</xsl:if>
+	<xsl:text>{"name":"</xsl:text>
+	<xsl:value-of select="translate(@name,'&quot;','\&quot;')"/>
+	<xsl:text>","count":</xsl:text>
+	<xsl:value-of select="sum(PaymentDay/@count)"/>
+	<xsl:text>,"amount":</xsl:text>
+	<xsl:value-of select="sum(PaymentDay/@amount)"/>
+	<xsl:text>}</xsl:text>
 </xsl:template>
 
 </xsl:stylesheet>

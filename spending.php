@@ -11,29 +11,35 @@ echo "Намерени са ".count($matches[1])." документи.<br/>\n";
 for ($i=0;$i<count($matches[1]);$i++) {
 	echo "Сваляне на ".$matches[1][$i]."... ";
 	$filenameXls="cache/".substr($matches[1][$i],0,5).".xls";
-	$filenameXml="cache/".substr($matches[1][$i],0,5).".xml";
 
-	if (file_exists($filenameXml) && filesize($filenameXml)>20) {
+	if (file_exists($filenameXls) && filesize($filenameXls)>20) {
 		echo "вече свален. Пропускам.<br/>\n";
 	} else {
 		$document = file_get_contents("http://www.minfin.bg/document/".$matches[1][$i]);
 		file_put_contents($filenameXls,$document);
 		$xml=parseExcel($filenameXls);
+
+		preg_match("_date=\"(\d{2})\.(\d{2})\.(\d{4})\"_", $xml, $matches1);
+		$filenameXml="data/daily_report_".$matches1[3].$matches1[2].$matches1[1].".xml";
+
 		file_put_contents($filenameXml,$xml);
 
 		echo "свален и прочетен. Записани са ".strlen($xml)." байта.<br/>\n";
 	}
 }
 
-$files = explode("\n",trim(`ls cache/*.xml`));
+$files = explode("\n",trim(`ls data/daily_report_*.xml`));
 sort($files);
 $all = "<?xml version=\"1.0\"?>\n<BudgetSpendings>\n";
+$all.= file_get_contents("orgtype.xml");
 foreach ($files as $file)
 	$all.=str_replace("<?xml version=\"1.0\"?>\n","",file_get_contents($file));
 $all.="\n</BudgetSpendings>";
+
 file_put_contents("all.xml",$all);
 
-`xsltproc xsl/all.xsl all.xml > spending.xml; rm all.xml`;
+`xsltproc xsl/all.xsl all.xml > data/complete_report.xml`;
+`cd data; for i in *.xml; do cp \$i "."\$i; gzip -f9 "."\$i; done`;
 
 echo "Трансформирани са  ".count($files)." записа.<br/>\n";
 

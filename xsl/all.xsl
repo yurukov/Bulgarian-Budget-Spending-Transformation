@@ -21,9 +21,6 @@
 			<xsl:attribute name="count">
 				<xsl:value-of select="sum(//SpendingSummary/@count)"/>
 			</xsl:attribute>
-			<xsl:attribute name="fullAmount">
-				<xsl:value-of select="sum(//SpendingSummary/@fullAmount)"/>
-			</xsl:attribute>
 			<Sebra>
 				<xsl:for-each select="//Sebra/Payment[not(preceding::Sebra/Payment/@name=./@name)]">
 					<xsl:sort select="@code"/>
@@ -90,6 +87,12 @@
 					</xsl:attribute>
 					<xsl:attribute name="fullAmount">
 						<xsl:value-of select="sum(//SpendingBreakdown/SpendingEntity[@code=$currentCode]/@fullAmount)"/>
+					</xsl:attribute>
+					<xsl:attribute name="categoryCode">
+						<xsl:value-of select="//category[contains(text(),$currentCode)]/@id"/>
+					</xsl:attribute>
+					<xsl:attribute name="categoryName">
+						<xsl:value-of select="//category[contains(text(),$currentCode)]/@name"/>
 					</xsl:attribute>
 
 					<xsl:for-each select="//SpendingBreakdown/SpendingEntity[@code=$currentCode]/Payment[not(following::SpendingEntity[@code=$currentCode]/Payment/@name=./@name)]">

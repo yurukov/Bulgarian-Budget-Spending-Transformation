@@ -1,0 +1,30 @@
+<IfModule mod_mime.c>
+  <FilesMatch "\.xml\.gz$">
+    ForceType 'application/xml; charset=UTF-8'
+    FileETag None
+  </FilesMatch>
+  AddEncoding gzip .gz
+  AddType application/xml .gz
+</IfModule>
+<IfModule mod_deflate.c>
+  SetEnvIfNoCase Request_URI \.gz$ no-gzip
+</IfModule>
+<IfModule mod_headers.c>
+  Header set Vary "Accept-Encoding, Cookie"
+  Header set Cache-Control 'max-age=300, must-revalidate'
+</IfModule>
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType application/xml "modification plus 5 days"
+</IfModule>
+
+AddDefaultCharset UTF-8
+
+<IfModule mod_rewrite.c>
+Options +FollowSymlinks +Indexes
+RewriteEngine On
+RewriteBase /spending/data
+
+RewriteCond %{HTTP:Accept-Encoding} gzip
+RewriteRule ^(.+)(\.xml)$ \.$1$2\.gz [L]
+</IfModule>
